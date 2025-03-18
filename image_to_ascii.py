@@ -1,3 +1,4 @@
+import os.path
 from PIL import Image, ImageDraw, ImageFont
 import cv2
 
@@ -8,7 +9,8 @@ class ImageToAsciiConverter:
         self.width = width
         self.ADJUSTED_RATIO = 0.5
         self.CHAR_ASPECT_RATIO = 1.3
-        self.default_font = "DejaVuSansMono.ttf"
+        self.default_font_name = "DejaVuSansMono.ttf"
+        self.default_font = self.default_font_name
 
         self.img = None
         self.ascii_image = None
@@ -46,6 +48,7 @@ class ImageToAsciiConverter:
 
     def ascii_conversion(self):
         self.pixels = self.img.getdata()
+
         self.new_pixels = [self.charset[min(int(pixel / self.scale_factor), len(self.charset) - 1)] for pixel in self.pixels]
 
         self.ascii_image = []
@@ -55,10 +58,17 @@ class ImageToAsciiConverter:
 
         self.ascii_image_str = "\n".join(self.ascii_image)
 
-    def load_font(self):
-        # Load font
-        self.font = ImageFont.truetype(self.default_font, 11)
-        self.font_width, self.font_height = self.font.getbbox("A")[2:4]  # Correct method for font size
+    def load_font(self, font=None):
+        font_path = font if font and os.path.exists(font) else self.default_font
+        try:
+            self.font = ImageFont.truetype(font_path, 11)
+            self.font_width, self.font_height = self.font.getbbox("A")[2:4]
+
+        except IOError:
+            print(f"Error loading font: {font_path}. Reverting to default.")
+
+            self.font = ImageFont.truetype(self.default_font, 11)
+            self.font_width, self.font_height = self.font.getbbox("A")[2:4]
 
     def get_ascii_image_dimensions(self):
         # Calculate the proper image dimensions
@@ -76,12 +86,12 @@ class ImageToAsciiConverter:
         self.ascii_drawn.text((0, 0), self.ascii_image_str, font=self.font, fill=(0, 0, 0))
         return self.ascii_image_result
 
-    def convert(self, img_path):
+    def convert(self, img_path, font=None):
         if self.open_image(img_path):
 
             self.resize_image()
             self.ascii_conversion()
-            self.load_font()
+            self.load_font(font) if font else self.load_font()
             self.get_ascii_image_dimensions()
             return self.create_ascii_image()
 
@@ -89,6 +99,7 @@ class ImageToAsciiConverter:
 
 if __name__ == "__main__":
 
+    # test set
     detailed_set = [
     "@", "B", "%", "8", "&", "W", "M", "#", "*", "o", "a", "h", "k", "b", "d", "p", "q", "w", "m",
     "Z", "O", "0", "Q", "L", "C", "J", "U", "Y", "X", "z", "c", "v", "u", "n", "x", "r", "j", "f", "t",
@@ -96,9 +107,9 @@ if __name__ == "__main__":
     ";", ":", ",", "\"", "^", "`", "'.", " "
 ]
 
-    #converter = ImageToAsciiConverter(width=150, charset=detailed_set)
+    # converter = ImageToAsciiConverter(width=150, charset=detailed_set)
     converter = ImageToAsciiConverter(width=200)
-    ascii_img = converter.convert("boot.jpeg")
+    ascii_img = converter.convert("test_images/boot.jpg")
     ascii_img.show()
 
 # for i, line in enumerate(self.ascii_image):
