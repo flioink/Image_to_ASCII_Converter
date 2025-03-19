@@ -44,19 +44,25 @@ class ImageToAsciiConverter:
         # Resize
         aspect_ratio = self.img.height / self.img.width
         self.new_height = int(aspect_ratio * self.width * self.ADJUSTED_RATIO)
+        self.original_img = self.img.resize((self.width, self.new_height))
         self.img = self.img.resize((self.width, self.new_height)).convert("L")
 
     def ascii_conversion(self):
         self.pixels = self.img.getdata()
+        self.pixels_colors = self.original_img.getdata()
+        # print(len(self.pixels_colors), len(self.pixels))
 
         self.new_pixels = [self.charset[min(int(pixel / self.scale_factor), len(self.charset) - 1)] for pixel in self.pixels]
 
+        self.colored_symbols = list(zip(self.new_pixels, self.pixels_colors))
+        # print(self.colored_symbols[0])
+
         self.ascii_image = []
-        for i in range(0, len(self.new_pixels), self.width):
-            row = "".join(self.new_pixels[i:i + self.width])  # Join characters into a row
+        for i in range(0, len(self.colored_symbols), self.width):
+            row = self.colored_symbols[i:i+self.width]  # Join characters into a row
             self.ascii_image.append(row)  # Store the row
 
-        self.ascii_image_str = "\n".join(self.ascii_image)
+        # self.ascii_image_str = "\n".join(self.ascii_image)
 
     def load_font(self, font=None):
         font_path = font if font and os.path.exists(font) else self.default_font
@@ -83,7 +89,18 @@ class ImageToAsciiConverter:
         self.ascii_drawn = ImageDraw.Draw(self.ascii_image_result)
 
         # Draw the ASCII text
-        self.ascii_drawn.text((0, 0), self.ascii_image_str, font=self.font, fill=(0, 0, 0))
+        #self.ascii_drawn.text((0, 0), self.ascii_image_str, font=self.font, fill=(0, 0, 0))
+
+        for y, row in enumerate(self.ascii_image):
+            for x, (char, color) in enumerate(row):  # Extract character and (R, G, B)
+                self.ascii_drawn.text(
+                    (x * self.font_width, y * self.font_height * self.CHAR_ASPECT_RATIO),
+                    char,
+                    font=self.font,
+                    fill=color
+                )
+
+
         return self.ascii_image_result
 
     def convert(self, img_path, font=None):
@@ -108,8 +125,8 @@ if __name__ == "__main__":
 ]
 
     # converter = ImageToAsciiConverter(width=150, charset=detailed_set)
-    converter = ImageToAsciiConverter(width=200)
-    ascii_img = converter.convert("test_images/boot.jpg")
+    converter = ImageToAsciiConverter()
+    ascii_img = converter.convert("test_images/da.jpg")
     ascii_img.show()
 
 # for i, line in enumerate(self.ascii_image):
